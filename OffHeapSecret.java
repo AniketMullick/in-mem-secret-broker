@@ -1,6 +1,6 @@
 import java.util.*;
 import java.lang.foreign.*;
-import java.lang.foreign.ValueLayout.OfByte;
+//import java.lang.foreign.ValueLayout.OfByte;
 public class OffHeapSecret implements AutoCloseable
 {
     MemorySegment secret=null;
