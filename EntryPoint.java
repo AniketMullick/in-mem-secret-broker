@@ -4,45 +4,62 @@ import java.util.*;
 import java.net.*;
 public class EntryPoint
 {
-    static LeaseManager manager=new LeaseManager();
+    LeaseManager manager=new LeaseManager();
     public EntryPoint(LeaseManager manager)
     {
-        EntryPoint.manager=manager;
+        this.manager=manager;
     }
-    public static void main(String[] args) throws IOException
+    public void main(String[] args) throws IOException
     {
         HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
         server.createContext("/", new Handler());
         server.setExecutor(null); // creates a default executor
         server.start();
     }
-    static class Handler implements HttpHandler
+    class Handler implements HttpHandler
     {
         @Override
         public void handle(HttpExchange request) throws IOException
         {
             if("POST".equalsIgnoreCase(request.getRequestMethod()))
             {
+                
+                if(!request.getRequestHeaders().containsKey("secret-ttl")||!request.getRequestHeaders().containsKey("owner-id"))
+                {
+                    String message="Bad request: Missing important header(s)";
+                    byte[] bytes=message.getBytes();
+                    request.sendResponseHeaders(400,bytes.length);
+                    try(OutputStream os=request.getResponseBody()){
+                        os.write(bytes, 0, bytes.length);
+                    }
+                    return;
+                }
                 byte[] temp=request.getRequestBody().readAllBytes();
-                OffHeapSecret phantom=new OffHeapSecret(temp);
-                Arrays.fill(temp,(byte)0);
-                long time = Long.parseLong(request.getRequestHeaders().get("secret-ttl").get(0));
+                OffHeapSecret phantom;
+                try{phantom=new OffHeapSecret(temp);}
+                catch(Throwable t)
+                {
+                    System.err.println("Allocation failed [" + t.getClass().getSimpleName() + "]: " + t.getMessage());
+                    t.printStackTrace();
+                    request.sendResponseHeaders(500, -1);
+                    return;
+                }
+                finally{Arrays.fill(temp,(byte)0);}
+                long time = Long.parseLong(request.getRequestHeaders().get("secret-ttl").get(0))*1000+System.currentTimeMillis();
                 String ownerId=request.getRequestHeaders().get("owner-id").get(0);
-                String secretId=request.getRequestHeaders().get("secret-id").get(0);
+                String secretId=UUID.randomUUID().toString();
                 SecretLease lease=new SecretLease(secretId,ownerId,time,phantom);
                 manager.store(lease);
+                byte[] bytes=secretId.getBytes();
+                request.sendResponseHeaders(201,bytes.length);
+                try(OutputStream os=request.getResponseBody()){
+                os.write(bytes, 0,bytes.length);
+                }
             }
-
-            if("GET"==request.getRequestMethod())
+            else if("GET"==request.getRequestMethod())
             {
-                String q=request.getResponseHeaders().getFirst("Authorization");
-                if(authenticate(q))//authenticates the bearer token
-                    
+                
             }
-        }
-        public boolean authenticate(String q)
-        {
-            if(q==)
         }
     }
 }

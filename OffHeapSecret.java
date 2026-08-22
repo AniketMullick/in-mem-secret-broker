@@ -5,7 +5,7 @@ public class OffHeapSecret implements AutoCloseable
 {
     MemorySegment secret=null;
     Arena arena=Arena.ofConfined();
-    OffHeapSecret(byte[] secret) throws Exception
+    OffHeapSecret(byte[] secret)
     {
         try
         {
@@ -18,9 +18,11 @@ public class OffHeapSecret implements AutoCloseable
             Arrays.fill(secret, (byte)0);
             System.out.println("Secret stored off-heap");
         }
-        catch(Exception e)
+        catch(Throwable t)
         {
-            throw new Exception("Failed to allocate off-heap memory for secret", e);
+            if (arena != null && arena.scope().isAlive())
+                arena.close(); 
+            throw new RuntimeException("Off-heap allocation failed", t);
         }
     }
     @Override
