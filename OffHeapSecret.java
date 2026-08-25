@@ -14,9 +14,9 @@ public class OffHeapSecret implements AutoCloseable
             //accessing any element 
             // ValueLayout.OfByte byteLayout=ValueLayout.JAVA_BYTE;
             // System.out.println(this.secret.get(byteLayout, 3));
-            System.out.println(this.secret.toString());
+            //System.out.println(this.secret.toString());
             Arrays.fill(secret, (byte)0);
-            System.out.println("Secret stored off-heap");
+            //System.out.println("Secret stored off-heap");
         }
         catch(Throwable t)
         {

@@ -9,7 +9,7 @@ public class LeaseManager
         leaseMap.put(secret.secretId(), secret);
         dq.add(secret);
     }
-    public SecretLease retrieve(String secretId,String ownerId) throws SecurityException,IllegalArgumentException,Exception
+    public SecretLease retrieve(String secretId,String ownerId)  //check this line
     {
         SecretLease secret=leaseMap.get(secretId);
         if(secret!=null)

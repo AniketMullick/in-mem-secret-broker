@@ -1,5 +1,6 @@
 import com.sun.net.httpserver.*;
 import java.io.*;
+import java.lang.foreign.ValueLayout;
 import java.util.*;
 import java.net.*;
 public class EntryPoint
@@ -9,7 +10,7 @@ public class EntryPoint
     {
         this.manager=manager;
     }
-    public void main(String[] args) throws IOException
+    public void executor(String[] args) throws IOException
     {
         HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
         server.createContext("/", new Handler());
@@ -56,9 +57,54 @@ public class EntryPoint
                 os.write(bytes, 0,bytes.length);
                 }
             }
-            else if("GET"==request.getRequestMethod())
+            else if("GET".equalsIgnoreCase(request.getRequestMethod()))
             {
-                
+                byte[] result={};
+                try{
+                    String path=request.getRequestURI().getPath();
+                    String secretId=path.substring(path.lastIndexOf('/')+1);
+                    String ownerId="";
+                    try{ownerId=request.getRequestHeaders().get("owner-id").get(0);}
+                    catch(NullPointerException e)
+                    {
+                        String message="Bad Request: Missing header component 'owner-id'";
+                        byte[] bytes=message.getBytes();
+                        request.sendResponseHeaders(400,bytes.length);
+                        try(OutputStream os=request.getResponseBody()){
+                            os.write(bytes, 0, bytes.length);
+                        }
+                        return;
+                    }
+                    SecretLease record;
+                    try{record=manager.retrieve(secretId, ownerId);}
+                    catch(SecurityException e)
+                    {
+                        String message="Forbidden: "+e.getMessage();
+                        byte[] bytes=message.getBytes();
+                        request.sendResponseHeaders(403,bytes.length);
+                        try(OutputStream os=request.getResponseBody()){
+                            os.write(bytes, 0, bytes.length);
+                        }
+                        return;
+                    }
+                    catch(IllegalArgumentException e)
+                    {
+                        String message="Not found: "+e.getMessage();
+                        byte[] bytes=message.getBytes();
+                        request.sendResponseHeaders(404,bytes.length);
+                        try(OutputStream os=request.getResponseBody()){
+                            os.write(bytes, 0, bytes.length);
+                        }
+                        return;
+                    }
+                    OffHeapSecret secret=record.secret();
+                    result=secret.secret.toArray(ValueLayout.JAVA_BYTE);
+                    request.sendResponseHeaders(200,result.length);
+                    try(OutputStream os=request.getResponseBody()){
+                        os.write(result, 0, result.length);
+                    }
+                }
+                finally{Arrays.fill(result,(byte)0);}
             }
         }
     }
