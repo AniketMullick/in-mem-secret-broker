@@ -3,10 +3,11 @@ import java.lang.foreign.*;
 //import java.lang.foreign.ValueLayout.OfByte;
 public class OffHeapSecret implements AutoCloseable
 {
-    MemorySegment secret=null;
-    Arena arena=Arena.ofConfined();
-    OffHeapSecret(byte[] secret)
+    private MemorySegment secret=null;
+    private Arena arena;
+    public OffHeapSecret(byte[] secret)
     {
+        this.arena=Arena.ofShared();
         try
         {
             this.secret=arena.allocate(secret.length);
@@ -15,7 +16,6 @@ public class OffHeapSecret implements AutoCloseable
             // ValueLayout.OfByte byteLayout=ValueLayout.JAVA_BYTE;
             // System.out.println(this.secret.get(byteLayout, 3));
             //System.out.println(this.secret.toString());
-            Arrays.fill(secret, (byte)0);
             //System.out.println("Secret stored off-heap");
         }
         catch(Throwable t)
@@ -24,17 +24,22 @@ public class OffHeapSecret implements AutoCloseable
                 arena.close(); 
             throw new RuntimeException("Off-heap allocation failed", t);
         }
+        finally
+        {
+            Arrays.fill(secret, (byte)0);
+        }
+    }
+    public MemorySegment getSecret()
+    {
+        return secret;
     }
     @Override
-    public void close() throws Exception
+    public void close()
     {
-        secret.fill((byte)0);
-        arena.close();
-    }
-    public static void main(String args[]) throws Exception
-    {
-        byte arr[]={1,3,8,127};
-        OffHeapSecret obj=new OffHeapSecret(arr);
-        obj.close();
+        if (arena != null && arena.scope().isAlive())
+        {
+            secret.fill((byte)0);
+            arena.close();
+        }
     }
 }

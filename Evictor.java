@@ -19,9 +19,13 @@ public class Evictor implements Runnable
                 top.secret().close();
             }
         }
+        catch(InterruptedException e)
+        {
+            System.err.println("Evictor thread interrupted: "+e.getMessage());
+        }
         catch(Exception e)
         {
-            System.out.println("Evictor thread interrupted");
+            System.out.println("Evictor thread exception: "+e.getMessage());
         }
     }
 }

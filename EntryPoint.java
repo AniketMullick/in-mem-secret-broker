@@ -98,7 +98,7 @@ public class EntryPoint
                         return;
                     }
                     OffHeapSecret secret=record.secret();
-                    result=secret.secret.toArray(ValueLayout.JAVA_BYTE);
+                    result=secret.getSecret().toArray(ValueLayout.JAVA_BYTE);
                     request.sendResponseHeaders(200,result.length);
                     try(OutputStream os=request.getResponseBody()){
                         os.write(result, 0, result.length);
